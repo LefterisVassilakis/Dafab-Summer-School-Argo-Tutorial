@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: eo-preprocess-
+spec:
+  entrypoint: preprocess-only
+  arguments:
+    parameters:
+    - name: patch-filename
+      value: "patch1.tiff"
+  templates:
+  - name: preprocess-only
+    steps:
+    - - name: preprocess
+        template: preprocess
+        arguments:
+          parameters:
+          - name: input-tiff
+            value: "/files/private/tutorial/tiffs/{{workflow.parameters.patch-filename}}"
+          - name: output-ndvi
+            value: "/files/private/tutorial/tiffs/ndvi.tiff"
+
+  - name: preprocess
+    inputs:
+      parameters:
+      - name: input-tiff
+      - name: output-ndvi
+    container:
+      image: lefterisv/eo-preprocess:latest
+      command: ["python", "/app/preprocess.py"]
+      args: ["{{inputs.parameters.input-tiff}}", "{{inputs.parameters.output-ndvi}}"]
