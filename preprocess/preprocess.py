@@ -1,23 +1,21 @@
 import rasterio
 import numpy as np
 import sys
-#import os
 
 input_file = sys.argv[1]
 output_file = sys.argv[2]
 
-#print(os.listdir("/private"))
-
 # Open the multi-band TIFF
 with rasterio.open(input_file) as src:
     red = src.read(1).astype(float)
-    profile = src.profile
     try:
         nir = src.read(2).astype(float)
     except IndexError:
         print("Band 2 not found, using Red as NIR for tutorial")
         nir = red.copy()
+    profile = src.profile
 
+# Scale
 red = red / 10000.0
 nir = nir / 10000.0
 
