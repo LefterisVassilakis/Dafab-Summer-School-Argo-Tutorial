@@ -6,8 +6,9 @@ spec:
   entrypoint: eo-pipeline
   arguments:
     parameters:
-    - name: patch-filename
-      value: "patch1.tiff"
+    - name: patch-name
+      value: "patch1"
+    - name: clean
   templates:
   - name: eo-pipeline
     dag:
@@ -17,29 +18,41 @@ spec:
         arguments:
           parameters:
           - name: input-tiff
-            value: "/files/private/tutorial/tiffs/{{workflow.parameters.patch-filename}}"
+            value: "/files/private/tutorial/tiffs/{{workflow.parameters.patch-name}}.tiff"
           - name: output-ndvi
-            value: "/files/private/tutorial/tiffs/nvdi.tiff"
+            value: "/files/private/tutorial/tiffs/{{workflow.parameters.patch-name}}-ndvi.tiff"
       - name: inference
         template: inference
         dependencies: [preprocess]
         arguments:
           parameters:
           - name: input-ndvi
-            value: "/files/private/tutorial/tiffs/nvdi.tiff"
+            value: "/files/private/tutorial/tiffs/{{workflow.parameters.patch-name}}-ndvi.tiff"
           - name: output-class
-            value: "/files/private/tutorial/tiffs/vegetation.tiff"
+            value: "/files/private/tutorial/tiffs/{{workflow.parameters.patch-name}}-vegetation.tiff"
       - name: plot-results
         template: plot
         dependencies: [inference]
         arguments:
           parameters:
           - name: input-ndvi
-            value: "/files/private/tutorial/tiffs/nvdi.tiff"
+            value: "/files/private/tutorial/tiffs/{{workflow.parameters.patch-name}}-ndvi.tiff"
           - name: input-class
-            value: "/files/private/tutorial/tiffs/vegetation.tiff"
+            value: "/files/private/tutorial/tiffs/{{workflow.parameters.patch-name}}-vegetation.tiff"
           - name: output-plot
-            value: "/files/private/tutorial/plots/plot.png"
+            value: "/files/private/tutorial/plots/{{workflow.parameters.patch-name}}-plot.png"
+      - name: cleanup
+        template: cleanup
+        dependencies:
+          - plot-results
+        arguments:
+          parameters:
+            - name: patch-name
+              value: "{{workflow.parameters.patch-name}}"
+            - name: clean
+              value: "{{workflow.parameters.clean}}"
+        when: "{{workflow.parameters.clean}} == true"
+
 
   - name: preprocess
     inputs:
@@ -71,3 +84,17 @@ spec:
       image: lefterisv/eo-plot:latest
       command: ["python", "/app/postprocess.py"]
       args: ["{{inputs.parameters.input-ndvi}}", "{{inputs.parameters.input-class}}", "{{inputs.parameters.output-plot}}"]
+  - name: cleanup
+    inputs:
+      parameters:
+        - name: patch-name
+        - name: clean
+    container:
+      image: alpine:3.18
+      command: [sh, -c]
+      args:
+        - |
+          echo "Cleaning intermediate files for {{inputs.parameters.patch-name}}..."
+          rm -f /files/private/tutorial/tiffs/{{inputs.parameters.patch-name}}-ndvi.tiff
+          rm -f /files/private/tutorial/tiffs/{{inputs.parameters.patch-name}}-vegetation.tiff
+

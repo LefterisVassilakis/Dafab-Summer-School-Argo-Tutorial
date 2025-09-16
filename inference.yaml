@@ -1,0 +1,53 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: eo-pipeline-preprocess-inference-
+spec:
+  entrypoint: preprocess-inference
+  arguments:
+    parameters:
+      - name: patch-name
+        value: "patch1"
+
+  templates:
+    - name: preprocess-inference
+      dag:
+        tasks:
+          - name: preprocess
+            template: preprocess
+            arguments:
+              parameters:
+                - name: input-tiff
+                  value: "/files/private/tutorial/tiffs/{{workflow.parameters.patch-name}}.tiff"
+                - name: output-ndvi
+                  value: "/files/private/tutorial/tiffs/{{workflow.parameters.patch-name}}-ndvi.tiff"
+
+          - name: inference
+            template: inference
+            dependencies: [preprocess]
+            arguments:
+              parameters:
+                - name: input-ndvi
+                  value: "/files/private/tutorial/tiffs/{{workflow.parameters.patch-name}}-ndvi.tiff"
+                - name: output-class
+                  value: "/files/private/tutorial/tiffs/{{workflow.parameters.patch-name}}-vegetation.tiff"
+
+    - name: preprocess
+      inputs:
+        parameters:
+          - name: input-tiff
+          - name: output-ndvi
+      container:
+        image: lefterisv/eo-preprocess:latest
+        command: ["python", "/app/preprocess.py"]
+        args: ["{{inputs.parameters.input-tiff}}", "{{inputs.parameters.output-ndvi}}"]
+
+    - name: inference
+      inputs:
+        parameters:
+          - name: input-ndvi
+          - name: output-class
+      container:
+        image: lefterisv/eo-inference:latest
+        command: ["python", "/app/inference.py"]
+        args: ["{{inputs.parameters.input-ndvi}}", "{{inputs.parameters.output-class}}"]
