@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: eo-pipeline-batch-
+spec:
+  entrypoint: run-eo-pipeline-batch
+  arguments:
+    parameters:
+      - name: patch-names
+      - name: clean
+        value: "true"
+
+  templates:
+    - name: run-eo-pipeline-batch
+      steps:
+        - - name: run-per-patch
+            templateRef:
+              name: eo-pipeline-template
+              template: eo-pipeline
+            arguments:
+              parameters:
+                - name: patch-name
+                  value: "{{item}}"
+                - name: clean
+                  value: "{{workflow.parameters.clean}}"
+            withParam: "{{workflow.parameters.patch-names}}"

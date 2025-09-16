@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: eo-pipeline-run-
+spec:
+  entrypoint: run-eo-pipeline
+  arguments:
+    parameters:
+      - name: patch-name
+      - name: clean
+
+  templates:
+    - name: run-eo-pipeline
+      steps:
+        - - name: run-template
+            templateRef:
+              name: eo-pipeline-template
+              template: eo-pipeline
+            arguments:
+              parameters:
+                - name: patch-name
+                  value: "{{workflow.parameters.patch-name}}"
+                - name: clean
+                  value: "{{workflow.parameters.clean}}"

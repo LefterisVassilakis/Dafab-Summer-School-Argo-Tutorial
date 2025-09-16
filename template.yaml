@@ -1,0 +1,100 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: eo-pipeline-template
+  namespace: knot-dafab
+spec:
+  templates:
+    - name: eo-pipeline
+      inputs:
+        parameters:
+          - name: patch-name
+          - name: clean
+      dag:
+        tasks:
+          - name: preprocess
+            template: preprocess
+            arguments:
+              parameters:
+                - name: input-tiff
+                  value: "/files/private/tutorial/tiffs/{{inputs.parameters.patch-name}}.tiff"
+                - name: output-ndvi
+                  value: "/files/private/tutorial/tiffs/{{inputs.parameters.patch-name}}-ndvi.tiff"
+
+          - name: inference
+            template: inference
+            dependencies: [preprocess]
+            arguments:
+              parameters:
+                - name: input-ndvi
+                  value: "/files/private/tutorial/tiffs/{{inputs.parameters.patch-name}}-ndvi.tiff"
+                - name: output-class
+                  value: "/files/private/tutorial/tiffs/{{inputs.parameters.patch-name}}-vegetation.tiff"
+
+          - name: plot-results
+            template: plot
+            dependencies: [inference]
+            arguments:
+              parameters:
+                - name: input-ndvi
+                  value: "/files/private/tutorial/tiffs/{{inputs.parameters.patch-name}}-ndvi.tiff"
+                - name: input-class
+                  value: "/files/private/tutorial/tiffs/{{inputs.parameters.patch-name}}-vegetation.tiff"
+                - name: output-plot
+                  value: "/files/private/tutorial/plots/{{inputs.parameters.patch-name}}-plot.png"
+
+          - name: cleanup
+            template: cleanup
+            dependencies: [plot-results]
+            arguments:
+              parameters:
+                - name: patch-name
+                  value: "{{inputs.parameters.patch-name}}"
+                - name: clean
+                  value: "{{inputs.parameters.clean}}"
+            when: "{{inputs.parameters.clean}} == true"
+
+    - name: preprocess
+      inputs:
+        parameters:
+          - name: input-tiff
+          - name: output-ndvi
+      container:
+        image: lefterisv/eo-preprocess:latest
+        command: ["python", "/app/preprocess.py"]
+        args: ["{{inputs.parameters.input-tiff}}", "{{inputs.parameters.output-ndvi}}"]
+
+    - name: inference
+      inputs:
+        parameters:
+          - name: input-ndvi
+          - name: output-class
+      container:
+        image: lefterisv/eo-inference:latest
+        command: ["python", "/app/inference.py"]
+        args: ["{{inputs.parameters.input-ndvi}}", "{{inputs.parameters.output-class}}"]
+
+    - name: plot
+      inputs:
+        parameters:
+          - name: input-ndvi
+          - name: input-class
+          - name: output-plot
+      container:
+        image: lefterisv/eo-plot:latest
+        command: ["python", "/app/postprocess.py"]
+        args: ["{{inputs.parameters.input-ndvi}}", "{{inputs.parameters.input-class}}", "{{inputs.parameters.output-plot}}"]
+
+    - name: cleanup
+      inputs:
+        parameters:
+          - name: patch-name
+          - name: clean
+      container:
+        image: alpine:3.18
+        command: [sh, -c]
+        args:
+          - |
+            echo "Cleaning intermediate files for {{inputs.parameters.patch-name}}..."
+            rm -f /files/private/tutorial/tiffs/{{inputs.parameters.patch-name}}-ndvi.tiff
+            rm -f /files/private/tutorial/tiffs/{{inputs.parameters.patch-name}}-vegetation.tiff
