@@ -18,7 +18,7 @@ spec:
             arguments:
               parameters:
                 - name: input-tiff
-                  value: "/files/private/tutorial/tiffs/{{inputs.parameters.patch-name}}.tiff"
+                  value: "/files/shared/tutorial/tiffs/{{inputs.parameters.patch-name}}.tiff"
                 - name: output-ndvi
                   value: "/files/private/tutorial/tiffs/{{inputs.parameters.patch-name}}-ndvi.tiff"
 
