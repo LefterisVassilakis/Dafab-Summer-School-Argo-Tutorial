@@ -9,6 +9,7 @@ spec:
       inputs:
         parameters:
           - name: patch-name
+          - name: threshold
           - name: clean
       dag:
         tasks:
@@ -28,6 +29,8 @@ spec:
               parameters:
                 - name: input-ndvi
                   value: "/files/private/tutorial/tiffs/{{inputs.parameters.patch-name}}-ndvi.tiff"
+                - name: threshold
+                  value: "{{inputs.parameters.threshold}}"
                 - name: output-class
                   value: "/files/private/tutorial/tiffs/{{inputs.parameters.patch-name}}-vegetation.tiff"
 
@@ -68,11 +71,12 @@ spec:
       inputs:
         parameters:
           - name: input-ndvi
+          - name: threshold
           - name: output-class
       container:
         image: lefterisv/eo-inference:latest
         command: ["python", "/app/inference.py"]
-        args: ["{{inputs.parameters.input-ndvi}}", "{{inputs.parameters.output-class}}"]
+        args: ["{{inputs.parameters.input-ndvi}}", "{{inputs.parameters.threshold}}", "{{inputs.parameters.output-class}}"]
 
     - name: plot
       inputs:

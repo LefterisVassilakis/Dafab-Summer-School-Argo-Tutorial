@@ -8,6 +8,8 @@ spec:
     parameters:
       - name: patch-name
         value: "patch1"
+      - name: threshold
+        value: "0.5"
 
   templates:
     - name: preprocess-inference
@@ -29,6 +31,8 @@ spec:
               parameters:
                 - name: input-ndvi
                   value: "/files/private/tutorial/tiffs/{{workflow.parameters.patch-name}}-ndvi.tiff"
+                - name: threshold
+                  value: "{{workflow.parameters.threshold}}"
                 - name: output-class
                   value: "/files/private/tutorial/tiffs/{{workflow.parameters.patch-name}}-vegetation.tiff"
 
@@ -46,8 +50,9 @@ spec:
       inputs:
         parameters:
           - name: input-ndvi
+          - name: threshold
           - name: output-class
       container:
         image: lefterisv/eo-inference:latest
         command: ["python", "/app/inference.py"]
-        args: ["{{inputs.parameters.input-ndvi}}", "{{inputs.parameters.output-class}}"]
+        args: ["{{inputs.parameters.input-ndvi}}", "{{inputs.parameters.threshold}}", "{{inputs.parameters.output-class}}"]
