@@ -23,4 +23,6 @@ spec:
                   value: "{{item}}"
                 - name: clean
                   value: "{{workflow.parameters.clean}}"
+                - name: threshold
+                  value: 0.3
             withParam: "{{workflow.parameters.patch-names}}"
